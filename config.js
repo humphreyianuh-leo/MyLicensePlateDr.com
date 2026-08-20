@@ -78,6 +78,28 @@ const LIVE_JURISDICTIONS = {
       }));
     },
   },
+  CA: {
+    label: 'San Francisco',
+    payUrl: 'https://www.sfmta.com/onlinecitation',
+    payLabel: 'Pay Online at SFMTA',
+    // SF's open dataset doesn't report current balance/payment status —
+    // only the fine amount at issuance. Don't claim to know what's still
+    // owed; surface the record and point the driver to SFMTA to confirm.
+    supportsBalance: false,
+    async fetchCitations(plate) {
+      const url = `https://data.sfgov.org/resource/ab4h-6ztd.json?vehicle_plate=${encodeURIComponent(plate)}&vehicle_plate_state=CA&$limit=25`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`SF Open Data returned ${res.status}`);
+      const rows = await res.json();
+      return rows.map((r) => ({
+        summonsNumber: r.citation_number,
+        violation: r.violation_desc || r.violation,
+        issueDate: r.citation_issued_datetime ? r.citation_issued_datetime.slice(0, 10) : '—',
+        fineAmount: r.fine_amount,
+        amountDue: null,
+      }));
+    },
+  },
 };
 
 function populateStateSelect(selectEl) {
