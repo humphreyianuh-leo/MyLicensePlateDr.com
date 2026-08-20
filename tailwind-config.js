@@ -10,6 +10,18 @@ tailwind.config = {
           700: '#1c3a7a',
           600: '#274c9c',
         },
+        // Sky blue: the site's dark-panel color (nav, hero, footer, coverage,
+        // dark cards). Kept saturated/dark enough at 900-950 to host white
+        // text, but a true blue rather than near-black navy.
+        sky: {
+          950: '#0b4a86',
+          900: '#0f5da3',
+          850: '#136fb9',
+          800: '#1a82cc',
+          700: '#2996dd',
+          600: '#3ea9e8',
+          500: '#5cbdf0',
+        },
         brand: {
           700: '#1a3fc4',
           600: '#2450dd',

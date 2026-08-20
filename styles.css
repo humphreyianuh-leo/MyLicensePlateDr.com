@@ -16,10 +16,10 @@ body { background: #f6f7fb; }
 
 .radial-field {
   background:
-    radial-gradient(60% 55% at 18% 8%, rgba(92,130,247,0.35), transparent 60%),
-    radial-gradient(50% 50% at 88% 18%, rgba(226,35,63,0.16), transparent 60%),
-    radial-gradient(70% 60% at 50% 100%, rgba(36,80,221,0.35), transparent 65%),
-    linear-gradient(180deg, #050c1f 0%, #0a1836 55%, #0e2047 100%);
+    radial-gradient(60% 55% at 18% 8%, rgba(124,195,236,0.4), transparent 60%),
+    radial-gradient(50% 50% at 88% 18%, rgba(226,35,63,0.14), transparent 60%),
+    radial-gradient(70% 60% at 50% 100%, rgba(62,169,232,0.4), transparent 65%),
+    linear-gradient(180deg, #0b4a86 0%, #0f5da3 55%, #136fb9 100%);
 }
 
 .plate-font { font-family: 'Oswald', sans-serif; letter-spacing: 0.01em; }
