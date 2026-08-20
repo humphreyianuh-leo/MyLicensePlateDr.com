@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyLicensePlateDr — Your License Plate's Personal Physician</title>
+<meta name="description" content="Twice-monthly checkups on every vehicle you own, across all 50 states. MyLicensePlateDr scans municipal citation records so tickets never go unnoticed." />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy: {
+            950: '#050c1f',
+            900: '#0a1836',
+            850: '#0e2047',
+            800: '#132a5c',
+            700: '#1c3a7a',
+            600: '#274c9c',
+          },
+          brand: {
+            700: '#1a3fc4',
+            600: '#2450dd',
+            500: '#3762f0',
+            400: '#5c82f7',
+            300: '#8ba5fb',
+            100: '#e8edfe',
+            50: '#f4f6ff',
+          },
+          alert: {
+            600: '#c81733',
+            500: '#e2233f',
+            100: '#fde5e9',
+          },
+          ok: {
+            700: '#0f6e4d',
+            600: '#128a5e',
+            100: '#e1f5ec',
+          },
+          steel: {
+            300: '#c7d0e0',
+            200: '#dde3ef',
+          }
+        },
+        fontFamily: {
+          display: ['Oswald', 'sans-serif'],
+          sans: ['Inter', 'sans-serif'],
+        },
+        boxShadow: {
+          elevated: '0 1px 1px rgba(10,24,54,0.04), 0 8px 16px -6px rgba(36,80,221,0.18), 0 20px 32px -16px rgba(10,24,54,0.28)',
+          floating: '0 2px 2px rgba(10,24,54,0.05), 0 16px 32px -8px rgba(36,80,221,0.24), 0 32px 64px -20px rgba(5,12,31,0.45)',
+          plate: '0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 4px rgba(10,24,54,0.08), 0 12px 24px -10px rgba(10,24,54,0.25)',
+        },
+      }
+    }
+  }
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { background: #f6f7fb; }
+
+  .ease-spring { transition-timing-function: cubic-bezier(.16,1,.3,1); }
+
+  .grain { position: relative; isolation: isolate; }
+  .grain::after {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .radial-field {
+    background:
+      radial-gradient(60% 55% at 18% 8%, rgba(92,130,247,0.35), transparent 60%),
+      radial-gradient(50% 50% at 88% 18%, rgba(226,35,63,0.16), transparent 60%),
+      radial-gradient(70% 60% at 50% 100%, rgba(36,80,221,0.35), transparent 65%),
+      linear-gradient(180deg, #050c1f 0%, #0a1836 55%, #0e2047 100%);
+  }
+
+  .plate-font { font-family: 'Oswald', sans-serif; letter-spacing: 0.01em; }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  .btn-primary {
+    background: linear-gradient(180deg, #4b73f2 0%, #2450dd 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -6px rgba(36,80,221,0.55);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 12px 28px -6px rgba(36,80,221,0.65); }
+  .btn-primary:active { transform: translateY(0); box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 12px -4px rgba(36,80,221,0.5); }
+  .btn-primary:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 3px; }
+
+  .btn-ghost:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+  .btn-ghost:active { transform: translateY(0); }
+  .btn-ghost:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 3px; }
+
+  .nav-link { position: relative; }
+  .nav-link::after {
+    content: ""; position: absolute; left: 0; bottom: -4px; height: 2px; width: 100%;
+    background: #5c82f7; transform: scaleX(0); transform-origin: left;
+    transition: transform 0.35s cubic-bezier(.16,1,.3,1);
+  }
+  .nav-link:hover::after, .nav-link:focus-visible::after { transform: scaleX(1); }
+  .nav-link:focus-visible { outline: none; }
+
+  .card-elevate { transition: transform 0.4s cubic-bezier(.16,1,.3,1), box-shadow 0.4s cubic-bezier(.16,1,.3,1); }
+  .card-elevate:hover { transform: translateY(-4px); box-shadow: 0 2px 2px rgba(10,24,54,0.05), 0 20px 36px -12px rgba(36,80,221,0.28), 0 32px 56px -20px rgba(10,24,54,0.35); }
+
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq .chev { transition: transform 0.35s cubic-bezier(.16,1,.3,1); }
+  details[open].faq .chev { transform: rotate(180deg); }
+  details.faq .answer { transition: grid-template-rows 0.35s cubic-bezier(.16,1,.3,1); }
+
+  .zip-input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,130,247,0.45); }
+
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+
+  ::selection { background: #5c82f7; color: white; }
+</style>
+</head>
+<body class="font-sans text-navy-900 antialiased">
+
+<!-- NAV -->
+<header class="sticky top-0 z-50 bg-[#050c1f]/90 backdrop-blur-md border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-3 group">
+      <img src="2.0mlpd_logo.png" alt="MyLicensePlateDr logo" class="h-11 w-11 rounded-xl shadow-elevated" />
+      <span class="plate-font text-white text-lg sm:text-xl font-semibold tracking-tight">MyLicense<span class="text-brand-400">Plate</span>Dr</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-9 text-sm text-steel-200">
+      <a href="#how" class="nav-link py-1">How It Works</a>
+      <a href="#pay" class="nav-link py-1">Pay a Citation</a>
+      <a href="#coverage" class="nav-link py-1">Coverage</a>
+      <a href="#features" class="nav-link py-1">Features</a>
+      <a href="#pricing" class="nav-link py-1">Pricing</a>
+      <a href="#faq" class="nav-link py-1">FAQ</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <a href="#login" class="btn-ghost hidden sm:inline-flex items-center px-4 py-2.5 rounded-lg text-sm text-steel-200 ease-spring duration-300">Log In</a>
+      <a href="#signup" class="btn-primary ease-spring duration-300 inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white">Get Your Free Checkup</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="top" class="radial-field grain relative overflow-hidden">
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-24 lg:pt-24 lg:pb-32 grid lg:grid-cols-2 gap-16 items-center">
+    <div>
+      <div class="inline-flex items-center gap-2 rounded-full bg-white/8 border border-white/10 px-4 py-1.5 text-xs font-medium text-brand-300 mb-7">
+        <span class="h-1.5 w-1.5 rounded-full bg-alert-500 pulse-dot"></span>
+        Now scanning 3,400+ jurisdictions nationwide
+      </div>
+      <h1 class="plate-font text-white text-4xl sm:text-5xl lg:text-[3.4rem] leading-[1.05] font-semibold tracking-[-0.02em]">
+        Your license plate has a physician now.
+      </h1>
+      <p class="mt-6 text-lg text-steel-200 leading-[1.7] max-w-xl">
+        Unpaid tickets don't send a reminder — they send a collections notice. MyLicensePlateDr runs a checkup on every vehicle you own, twice a month, across every state, county, and municipal court in the country. Catch it early. Skip the late fees.
+      </p>
+      <div class="mt-9 flex flex-col sm:flex-row gap-4">
+        <a href="#signup" class="btn-primary ease-spring duration-300 inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white font-semibold">
+          Start My Free Checkup
+        </a>
+        <a href="#how" class="btn-ghost ease-spring duration-300 inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl border border-white/15 text-white font-medium">
+          See How It Works
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+      </div>
+      <div class="mt-10 flex items-center gap-8 text-steel-300 text-sm">
+        <div><span class="text-white text-2xl font-semibold plate-font">50</span> states covered</div>
+        <div class="h-8 w-px bg-white/10"></div>
+        <div><span class="text-white text-2xl font-semibold plate-font">2x</span> monthly scans</div>
+        <div class="h-8 w-px bg-white/10"></div>
+        <div><span class="text-white text-2xl font-semibold plate-font">24hr</span> alert speed</div>
+      </div>
+    </div>
+
+    <div class="relative">
+      <div class="absolute -inset-8 bg-brand-500/20 blur-3xl rounded-full"></div>
+      <div class="relative bg-white rounded-2xl shadow-floating overflow-hidden border border-white/10">
+        <div class="flex items-center gap-1.5 px-4 py-3 bg-navy-900/95">
+          <span class="h-2.5 w-2.5 rounded-full bg-alert-500/70"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-white/25"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-white/25"></span>
+          <span class="ml-3 text-[11px] text-steel-300 plate-font tracking-wide">app.mylicenseplatedr.com/dashboard</span>
+        </div>
+        <img src="https://placehold.co/720x520/f4f6ff/1c3a7a?font=roboto&text=Vehicle+Dashboard%0A%0AAccord%3A+Clean%0AF-150%3A+1+Ticket" alt="MyLicensePlateDr dashboard preview showing vehicle checkup status" class="w-full h-auto" />
+      </div>
+      <div class="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-floating px-5 py-4 flex items-center gap-3 border border-steel-200">
+        <div class="h-10 w-10 rounded-full bg-alert-100 flex items-center justify-center">
+          <svg class="h-5 w-5 text-alert-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <div>
+          <p class="text-xs text-navy-600 font-medium">New citation detected</p>
+          <p class="text-sm font-semibold text-navy-900">Plate 3KLT810 · Dallas County</p>
+          <a href="#pay" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 ease-spring duration-200">
+            Pay now
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ADD VEHICLE / SIGNUP DEMO -->
+<section id="signup" class="bg-[#f4f6ff]">
+  <div class="max-w-3xl mx-auto px-6 lg:px-10 py-24">
+    <div class="text-center reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Patient intake</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Add a vehicle. See the checkup live.</h2>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg max-w-xl mx-auto">Every plate from every state, in every plate type — this is exactly what goes on the chart before we run the first scan.</p>
+    </div>
+
+    <form id="demo-form" class="reveal mt-12 bg-white border border-steel-200 rounded-2xl p-8 sm:p-10 shadow-floating" novalidate>
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div class="sm:col-span-2">
+          <label for="plate-number" class="block text-sm font-semibold text-navy-900 mb-2">License plate number</label>
+          <input id="plate-number" name="plate-number" type="text" required maxlength="8" placeholder="e.g. 7GHK392"
+            class="zip-input w-full uppercase tracking-widest plate-font rounded-lg px-4 py-3 bg-brand-50 border border-steel-200 text-navy-900 placeholder:text-navy-600/40 placeholder:tracking-normal placeholder:font-sans text-lg ease-spring duration-200" />
+        </div>
+        <div>
+          <label for="plate-state" class="block text-sm font-semibold text-navy-900 mb-2">State</label>
+          <select id="plate-state" name="plate-state" required
+            class="zip-input w-full rounded-lg px-4 py-3 bg-brand-50 border border-steel-200 text-navy-900 text-sm ease-spring duration-200">
+            <option value="" disabled selected>Select state</option>
+          </select>
+        </div>
+        <div>
+          <label for="plate-type" class="block text-sm font-semibold text-navy-900 mb-2">Plate type</label>
+          <select id="plate-type" name="plate-type" required
+            class="zip-input w-full rounded-lg px-4 py-3 bg-brand-50 border border-steel-200 text-navy-900 text-sm ease-spring duration-200">
+            <option value="" disabled selected>Select plate type</option>
+            <option>Passenger</option>
+            <option>Commercial</option>
+            <option>Motorcycle</option>
+            <option>Trailer</option>
+            <option>RV / Motorhome</option>
+            <option>Disability</option>
+            <option>Antique / Classic</option>
+            <option>Vanity</option>
+            <option>Government</option>
+            <option>Temporary / Dealer</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" id="demo-submit" class="btn-primary ease-spring duration-300 mt-8 w-full inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white font-semibold disabled:opacity-70">
+        Run Free Checkup
+      </button>
+
+      <div id="demo-result" class="hidden mt-8 rounded-xl bg-ok-100 border border-ok-600/20 px-6 py-5 items-start gap-4">
+        <div class="h-10 w-10 shrink-0 rounded-full bg-white shadow-elevated flex items-center justify-center">
+          <svg class="h-5 w-5 text-ok-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div>
+          <p class="font-semibold text-ok-700">Clean bill of health</p>
+          <p id="demo-result-text" class="mt-1 text-sm text-navy-700"></p>
+          <p class="mt-2 text-xs text-navy-600">This is a live demo — create your account to run a real checkup against actual municipal records.</p>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- SYMPTOMS / PROBLEM -->
+<section class="bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Left untreated</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">A ticket you never saw is still a ticket you owe.</h2>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg">Most municipalities don't mail a second notice before penalties compound. Here's what a missed citation turns into.</p>
+    </div>
+
+    <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <div class="h-11 w-11 rounded-xl bg-white shadow-elevated flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-alert-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Fees double, then triple</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Most jurisdictions escalate unpaid fines 50–100% after 30 days of silence.</p>
+      </div>
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <div class="h-11 w-11 rounded-xl bg-white shadow-elevated flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-alert-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Registration holds</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Unpaid camera and parking tickets can silently block your next renewal.</p>
+      </div>
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <div class="h-11 w-11 rounded-xl bg-white shadow-elevated flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-alert-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Boot &amp; tow risk</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">A handful of major cities boot vehicles after just a few outstanding citations.</p>
+      </div>
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <div class="h-11 w-11 rounded-xl bg-white shadow-elevated flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-alert-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">License suspension</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">In some states, chronic non-payment escalates all the way to suspension.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="bg-[#f4f6ff]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">The checkup</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Four steps to a clean bill of health.</h2>
+    </div>
+
+    <div class="mt-16 grid md:grid-cols-4 gap-10 relative">
+      <div class="hidden md:block absolute top-6 left-[12%] right-[12%] h-px bg-gradient-to-r from-brand-300 via-brand-400 to-brand-300"></div>
+
+      <div class="reveal relative">
+        <div class="h-12 w-12 rounded-full bg-navy-900 text-white plate-font flex items-center justify-center font-semibold shadow-elevated relative z-10">01</div>
+        <h3 class="mt-6 font-semibold text-navy-900 text-lg">Add your vehicle</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Plate, state, and a few details. Add as many vehicles as you own — one account, one dashboard.</p>
+      </div>
+      <div class="reveal relative">
+        <div class="h-12 w-12 rounded-full bg-navy-900 text-white plate-font flex items-center justify-center font-semibold shadow-elevated relative z-10">02</div>
+        <h3 class="mt-6 font-semibold text-navy-900 text-lg">We run the checkup</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Twice a month, our engine checks state, county, and municipal citation records tied to your plate.</p>
+      </div>
+      <div class="reveal relative">
+        <div class="h-12 w-12 rounded-full bg-navy-900 text-white plate-font flex items-center justify-center font-semibold shadow-elevated relative z-10">03</div>
+        <h3 class="mt-6 font-semibold text-navy-900 text-lg">Get the diagnosis</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Clean bill of health, or an instant alert with the citation, amount, issuing court, and due date.</p>
+      </div>
+      <div class="reveal relative">
+        <div class="h-12 w-12 rounded-full bg-navy-900 text-white plate-font flex items-center justify-center font-semibold shadow-elevated relative z-10">04</div>
+        <h3 class="mt-6 font-semibold text-navy-900 text-lg">Treat it early</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Pay direct through the issuing court before penalties, holds, or fees have a chance to compound.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAY IT -->
+<section id="pay" class="bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">The prescription</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Every alert comes with a way to pay.</h2>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg">We don't just tell you a citation exists. Every alert links straight to the issuing court's payment page — and if a court doesn't offer one, we tell you exactly how to pay instead.</p>
+    </div>
+
+    <div class="mt-14 grid lg:grid-cols-2 gap-6">
+      <div class="reveal card-elevate rounded-2xl border border-steel-200 bg-brand-50 p-7 sm:p-8">
+        <div class="flex items-center justify-between">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-alert-100 text-alert-600 text-xs font-semibold px-3 py-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-alert-500"></span>
+            Citation found
+          </span>
+          <span class="text-xs text-navy-600">Detected today</span>
+        </div>
+        <p class="mt-5 text-sm text-navy-600">Plate 3KLT810 · Dallas County, TX</p>
+        <p class="mt-1 font-semibold text-navy-900 text-lg">Red light camera violation</p>
+        <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <p class="text-navy-600">Amount due</p>
+            <p class="font-semibold text-navy-900 plate-font text-xl mt-0.5">$75.00</p>
+          </div>
+          <div>
+            <p class="text-navy-600">Due date</p>
+            <p class="font-semibold text-navy-900 mt-0.5">Sep 11, 2026</p>
+          </div>
+        </div>
+        <a href="#" target="_blank" rel="noopener" class="btn-primary ease-spring duration-300 mt-6 w-full inline-flex justify-center items-center gap-2 px-6 py-3.5 rounded-xl text-white font-semibold text-sm">
+          Pay Online at Dallas Municipal Court
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+        </a>
+        <p class="mt-3 text-xs text-navy-600 text-center">Opens the court's official payment portal in a new tab.</p>
+      </div>
+
+      <div class="reveal card-elevate rounded-2xl border border-steel-200 bg-navy-900 p-7 sm:p-8 text-steel-200">
+        <div class="flex items-center justify-between">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 text-steel-200 text-xs font-semibold px-3 py-1">
+            No online payment available
+          </span>
+        </div>
+        <p class="mt-5 text-sm text-steel-300">Plate 8DTR221 · Harlan County, KY</p>
+        <p class="mt-1 font-semibold text-white text-lg">Speeding violation</p>
+        <p class="mt-4 text-sm leading-[1.7]">This court doesn't offer online payment yet. Here's exactly how to take care of it:</p>
+        <ul class="mt-5 space-y-4 text-sm">
+          <li class="flex gap-3">
+            <svg class="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+            <span><span class="text-white font-medium">Pay by mail</span><br>Harlan County District Court, 210 Court St, Harlan, KY 40831</span>
+          </li>
+          <li class="flex gap-3">
+            <svg class="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+            <span><span class="text-white font-medium">Pay by phone</span><br>(606) 555-0139 · Mon–Fri, 8am–4:30pm ET</span>
+          </li>
+          <li class="flex gap-3">
+            <svg class="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-6-5.4-6-10a6 6 0 0112 0c0 4.6-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>
+            <span><span class="text-white font-medium">Pay in person</span><br>Same address as above · Bring citation number</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COVERAGE -->
+<section id="coverage" class="bg-navy-900 grain relative overflow-hidden">
+  <div class="absolute inset-0 radial-field opacity-90"></div>
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 py-24 grid lg:grid-cols-2 gap-16 items-center">
+    <div class="reveal order-2 lg:order-1">
+      <div class="relative rounded-2xl overflow-hidden shadow-floating border border-white/10">
+        <img src="https://placehold.co/640x520/0e2047/8ba5fb?font=roboto&text=Coverage+Map%0A%0A50+States%0A3%2C400%2B+Jurisdictions" alt="Map illustrating nationwide coverage across all 50 states" class="w-full h-auto" />
+      </div>
+    </div>
+    <div class="order-1 lg:order-2">
+      <p class="text-brand-300 font-semibold text-sm tracking-wide uppercase">Full-body coverage</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-white tracking-[-0.02em] mt-3">Every state. Every county. Every court that publishes a record.</h2>
+      <p class="mt-5 text-steel-200 leading-[1.7] text-lg">From state DOT camera programs down to small-town municipal courts, our scanning engine reaches the jurisdictions that actually issue your citations — not just the big cities.</p>
+
+      <div class="mt-8 flex flex-col sm:flex-row gap-3 max-w-md">
+        <input type="text" inputmode="numeric" placeholder="Enter your ZIP code" class="zip-input flex-1 rounded-lg px-4 py-3 bg-white/10 border border-white/15 text-white placeholder:text-steel-300 text-sm ease-spring duration-200" />
+        <button class="btn-primary ease-spring duration-300 rounded-lg px-6 py-3 text-white font-semibold text-sm whitespace-nowrap">Check Coverage</button>
+      </div>
+
+      <div class="mt-10 grid grid-cols-3 gap-6 max-w-md">
+        <div>
+          <p class="plate-font text-3xl text-white font-semibold">50</p>
+          <p class="text-xs text-steel-300 mt-1">states</p>
+        </div>
+        <div>
+          <p class="plate-font text-3xl text-white font-semibold">3,400+</p>
+          <p class="text-xs text-steel-300 mt-1">counties &amp; municipalities</p>
+        </div>
+        <div>
+          <p class="plate-font text-3xl text-white font-semibold">2x</p>
+          <p class="text-xs text-steel-300 mt-1">scans every month</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">What's included</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Everything a good physician keeps on file.</h2>
+    </div>
+
+    <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17a4 4 0 004-4V6a2 2 0 00-4 0v9a6 6 0 0012 0V9"/><circle cx="19" cy="6" r="2"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Multi-vehicle charts</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Every car, truck, and trailer you own, tracked on one patient chart with full history.</p>
+      </div>
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Instant alerts</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Email, SMS, or push — the moment a new citation posts to any of your plates.</p>
+      </div>
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Digital paper trail</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Every checkup, every result, timestamped — handy for disputes and reimbursements.</p>
+      </div>
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Family fleet</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Add a spouse, a teen driver, or a whole small-business fleet under one plan.</p>
+      </div>
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Renewal reminders</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Registration and inspection dates tracked alongside citations, in one place.</p>
+      </div>
+      <div class="reveal card-elevate rounded-2xl p-7 border border-steel-200 bg-white">
+        <div class="h-11 w-11 rounded-xl bg-brand-100 flex items-center justify-center mb-5">
+          <svg class="h-5 w-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+        </div>
+        <h3 class="font-semibold text-navy-900 text-lg">Secure &amp; private</h3>
+        <p class="mt-2 text-sm text-navy-600 leading-[1.7]">Bank-level encryption on every record. Your data is never sold, ever.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="bg-[#f4f6ff]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl mx-auto text-center reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Plans</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">A checkup plan for every household.</h2>
+    </div>
+
+    <div class="mt-14 grid md:grid-cols-3 gap-8 items-start">
+      <div class="reveal card-elevate bg-white rounded-2xl p-8 border border-steel-200 shadow-elevated">
+        <h3 class="font-semibold text-navy-900 text-lg">Single Vehicle</h3>
+        <p class="mt-2 text-sm text-navy-600">For one plate, one peace of mind.</p>
+        <p class="mt-6 plate-font text-4xl font-semibold text-navy-900">Free<span class="text-base font-normal text-navy-600"> forever</span></p>
+        <ul class="mt-7 space-y-3 text-sm text-navy-700">
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>1 vehicle tracked</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Twice-monthly checkups</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Email alerts</li>
+        </ul>
+        <a href="#signup" class="mt-8 block text-center rounded-lg border border-brand-500 text-brand-600 font-semibold py-3 ease-spring duration-300 hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500">Choose Plan</a>
+      </div>
+
+      <div class="reveal relative bg-navy-900 rounded-2xl p-8 shadow-floating border border-brand-500/30 md:-mt-4 md:mb-4">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-alert-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-elevated">Most Popular</span>
+        <h3 class="font-semibold text-white text-lg">Family Fleet</h3>
+        <p class="mt-2 text-sm text-steel-300">For every car in the driveway.</p>
+        <p class="mt-6 plate-font text-4xl font-semibold text-white">$4<span class="text-base font-normal text-steel-300">/mo</span></p>
+        <ul class="mt-7 space-y-3 text-sm text-steel-200">
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Up to 5 vehicles</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>SMS + push + email alerts</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Renewal reminders</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Shared household access</li>
+        </ul>
+        <a href="#signup" class="btn-primary mt-8 block text-center rounded-lg text-white font-semibold py-3 ease-spring duration-300">Choose Plan</a>
+      </div>
+
+      <div class="reveal card-elevate bg-white rounded-2xl p-8 border border-steel-200 shadow-elevated">
+        <h3 class="font-semibold text-navy-900 text-lg">Fleet / Pro</h3>
+        <p class="mt-2 text-sm text-navy-600">For small businesses and fleets.</p>
+        <p class="mt-6 plate-font text-4xl font-semibold text-navy-900">$11<span class="text-base font-normal text-navy-600">/mo</span></p>
+        <ul class="mt-7 space-y-3 text-sm text-navy-700">
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Up to 25 vehicles</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Weekly checkup option</li>
+          <li class="flex gap-2"><svg class="h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>CSV export &amp; API access</li>
+        </ul>
+        <a href="#signup" class="mt-8 block text-center rounded-lg border border-brand-500 text-brand-600 font-semibold py-3 ease-spring duration-300 hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500">Choose Plan</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Second opinions</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Drivers who caught it early.</h2>
+    </div>
+    <div class="mt-14 grid md:grid-cols-3 gap-6">
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <p class="text-navy-700 leading-[1.7]">"Found a camera ticket from a rental car three weeks before it would've gone to collections. Paid $60 instead of $180."</p>
+        <div class="mt-6 flex items-center gap-3">
+          <img src="https://placehold.co/40x40/1c3a7a/ffffff?text=MK" class="h-10 w-10 rounded-full" alt="Portrait of Maria K." />
+          <div>
+            <p class="text-sm font-semibold text-navy-900">Maria K.</p>
+            <p class="text-xs text-navy-600">Austin, TX</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <p class="text-navy-700 leading-[1.7]">"Run a 6-vehicle landscaping fleet. This replaced a spreadsheet three people used to forget to update."</p>
+        <div class="mt-6 flex items-center gap-3">
+          <img src="https://placehold.co/40x40/1c3a7a/ffffff?text=DT" class="h-10 w-10 rounded-full" alt="Portrait of Derek T." />
+          <div>
+            <p class="text-sm font-semibold text-navy-900">Derek T.</p>
+            <p class="text-xs text-navy-600">Columbus, OH</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal card-elevate bg-brand-50 rounded-2xl p-7 border border-brand-100">
+        <p class="text-navy-700 leading-[1.7]">"My son just started driving. I get a text if anything shows up on his plate before it ever hits our mailbox."</p>
+        <div class="mt-6 flex items-center gap-3">
+          <img src="https://placehold.co/40x40/1c3a7a/ffffff?text=SP" class="h-10 w-10 rounded-full" alt="Portrait of Sandra P." />
+          <div>
+            <p class="text-sm font-semibold text-navy-900">Sandra P.</p>
+            <p class="text-xs text-navy-600">Tampa, FL</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="bg-[#f4f6ff]">
+  <div class="max-w-4xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Questions</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Frequently asked.</h2>
+    </div>
+
+    <div class="mt-12 space-y-4">
+      <details class="faq reveal group bg-white rounded-xl border border-steel-200 shadow-elevated px-6 py-5">
+        <summary class="flex items-center justify-between cursor-pointer list-none font-semibold text-navy-900">
+          Is this affiliated with the DMV or a government agency?
+          <svg class="chev h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-4 text-sm text-navy-600 leading-[1.7]">No. MyLicensePlateDr is an independent monitoring service. We aggregate publicly available citation records from state, county, and municipal sources — we don't issue tickets, collect fines, or represent any government body.</p>
+      </details>
+      <details class="faq reveal group bg-white rounded-xl border border-steel-200 shadow-elevated px-6 py-5">
+        <summary class="flex items-center justify-between cursor-pointer list-none font-semibold text-navy-900">
+          How often is my plate actually checked?
+          <svg class="chev h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-4 text-sm text-navy-600 leading-[1.7]">Every vehicle on your account is scanned twice a month by default. Fleet plans can increase that to weekly.</p>
+      </details>
+      <details class="faq reveal group bg-white rounded-xl border border-steel-200 shadow-elevated px-6 py-5">
+        <summary class="flex items-center justify-between cursor-pointer list-none font-semibold text-navy-900">
+          Can I add a vehicle that isn't registered to me?
+          <svg class="chev h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-4 text-sm text-navy-600 leading-[1.7]">You can monitor any plate you have a legitimate interest in — your own vehicles, your household, or vehicles you manage professionally, like a fleet. Citation records are public information, but our tools are meant for tracking vehicles you're responsible for.</p>
+      </details>
+      <details class="faq reveal group bg-white rounded-xl border border-steel-200 shadow-elevated px-6 py-5">
+        <summary class="flex items-center justify-between cursor-pointer list-none font-semibold text-navy-900">
+          What happens if my city isn't covered yet?
+          <svg class="chev h-5 w-5 text-brand-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-4 text-sm text-navy-600 leading-[1.7]">We're adding new municipal courts every week. Search your ZIP above — if we're not there yet, we'll notify you the moment coverage goes live.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="radial-field grain relative overflow-hidden">
+  <div class="relative z-10 max-w-4xl mx-auto px-6 lg:px-10 py-24 text-center">
+    <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-white tracking-[-0.02em]">Give your plate its first checkup — free.</h2>
+    <p class="mt-5 text-steel-200 text-lg leading-[1.7] max-w-xl mx-auto">No credit card required. Add a vehicle and we'll run the scan in under a minute.</p>
+    <a href="#signup" class="btn-primary ease-spring duration-300 inline-flex items-center mt-9 px-8 py-4 rounded-xl text-white font-semibold text-lg">Start My Free Checkup</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-[#050c1f] text-steel-300">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16 grid sm:grid-cols-2 lg:grid-cols-5 gap-10">
+    <div class="lg:col-span-2">
+      <div class="flex items-center gap-3">
+        <img src="2.0mlpd_logo.png" alt="MyLicensePlateDr logo" class="h-10 w-10 rounded-lg" />
+        <span class="plate-font text-white text-lg font-semibold">MyLicensePlateDr</span>
+      </div>
+      <p class="mt-4 text-sm leading-[1.7] max-w-xs">Twice-monthly checkups on every plate you own, across all 50 states. Catch citations before they become a problem.</p>
+    </div>
+    <div>
+      <p class="text-white font-semibold text-sm">Product</p>
+      <ul class="mt-4 space-y-3 text-sm">
+        <li><a href="#how" class="nav-link">How It Works</a></li>
+        <li><a href="#coverage" class="nav-link">Coverage</a></li>
+        <li><a href="#pricing" class="nav-link">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="text-white font-semibold text-sm">Company</p>
+      <ul class="mt-4 space-y-3 text-sm">
+        <li><a href="#" class="nav-link">About</a></li>
+        <li><a href="#" class="nav-link">Contact</a></li>
+        <li><a href="#" class="nav-link">Careers</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="text-white font-semibold text-sm">Legal</p>
+      <ul class="mt-4 space-y-3 text-sm">
+        <li><a href="#" class="nav-link">Privacy Policy</a></li>
+        <li><a href="#" class="nav-link">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-steel-300/80">
+      <p>© 2026 MyLicensePlateDr. Not affiliated with any DMV or government agency. Citation data sourced from public records.</p>
+      <p>Made for drivers who'd rather know.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+  const STATES = [
+    ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+    ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],['FL','Florida'],
+    ['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],
+    ['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],
+    ['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],
+    ['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],
+    ['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],
+    ['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],
+    ['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],
+    ['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],
+    ['WY','Wyoming'],
+  ];
+
+  const stateSelect = document.getElementById('plate-state');
+  if (stateSelect) {
+    STATES.forEach(([abbr, name]) => {
+      const opt = document.createElement('option');
+      opt.value = abbr;
+      opt.textContent = `${name} (${abbr})`;
+      stateSelect.appendChild(opt);
+    });
+  }
+
+  const demoForm = document.getElementById('demo-form');
+  if (demoForm) {
+    const submitBtn = document.getElementById('demo-submit');
+    const result = document.getElementById('demo-result');
+    const resultText = document.getElementById('demo-result-text');
+
+    demoForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!demoForm.checkValidity()) {
+        demoForm.reportValidity();
+        return;
+      }
+
+      const plateNumber = document.getElementById('plate-number').value.toUpperCase();
+      const stateAbbr = stateSelect.value;
+      const stateName = STATES.find(([abbr]) => abbr === stateAbbr)?.[1] || stateAbbr;
+      const plateType = document.getElementById('plate-type').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Running checkup…';
+      result.classList.add('hidden');
+
+      setTimeout(() => {
+        resultText.textContent = `${plateNumber} · ${stateName} (${stateAbbr}) · ${plateType} — no open citations found.`;
+        result.classList.remove('hidden');
+        result.classList.add('flex');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Run Free Checkup';
+      }, 900);
+    });
+  }
+</script>
+
+</body>
+</html>

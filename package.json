@@ -1,0 +1,11 @@
+{
+  "name": "mylicenseplatedr-com",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "puppeteer": "^23.0.0"
+  },
+  "allowScripts": {
+    "puppeteer@23.11.1": true
+  }
+}
