@@ -44,7 +44,7 @@
   </div>
 
   <div class="mt-4 rounded-xl bg-brand-50 border border-brand-100 px-5 py-4 text-sm text-navy-700">
-    Live checkups currently cover <span class="font-semibold">New York City (NY)</span> only, pulled directly from NYC's public Open Parking &amp; Camera Violations records. Other states will show as coming soon while we add more jurisdictions.
+    Live checkups currently cover <span class="font-semibold">New York City (NY)</span> and <span class="font-semibold">Baltimore City (MD)</span>, pulled directly from each city's public open citation records. Other states will show as coming soon while we add more jurisdictions.
   </div>
 
   <!-- ADD VEHICLE -->
@@ -179,27 +179,25 @@
     btn.disabled = true;
     const originalLabel = btn.textContent;
 
-    if (!LIVE_COVERAGE_STATES.includes(vehicle.plate_state)) {
+    const jurisdiction = LIVE_JURISDICTIONS[vehicle.plate_state];
+    if (!jurisdiction) {
       const stateName = STATES.find(([abbr]) => abbr === vehicle.plate_state)?.[1] || vehicle.plate_state;
+      const covered = Object.values(LIVE_JURISDICTIONS).map((j) => j.label).join(' and ');
       resultEl.innerHTML = `
         <div class="mt-4 rounded-xl bg-brand-50 border border-brand-100 px-5 py-4 text-sm text-navy-700">
-          Live coverage for <span class="font-semibold">${escapeHtml(stateName)}</span> is coming soon. We're currently piloting real-time checkups in New York City (NY) only.
+          Live coverage for <span class="font-semibold">${escapeHtml(stateName)}</span> is coming soon. We're currently piloting real-time checkups in ${escapeHtml(covered)} only.
         </div>`;
       btn.disabled = false;
       return;
     }
 
-    btn.textContent = 'Checking NYC records…';
+    btn.textContent = `Checking ${jurisdiction.label} records…`;
     resultEl.innerHTML = '';
 
     try {
       const plate = vehicle.plate_number.trim().toUpperCase();
-      const url = `https://data.cityofnewyork.us/resource/nc67-uf89.json?plate=${encodeURIComponent(plate)}&state=NY&$limit=25`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`NYC Open Data returned ${res.status}`);
-      const rows = await res.json();
-
-      const open = rows.filter((r) => parseFloat(r.amount_due || '0') > 0);
+      const rows = await jurisdiction.fetchCitations(plate);
+      const open = rows.filter((r) => parseFloat(r.amountDue || '0') > 0);
 
       if (rows.length === 0) {
         resultEl.innerHTML = `
@@ -207,18 +205,18 @@
             <svg class="h-5 w-5 shrink-0 text-ok-600 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
             <div>
               <p class="font-semibold text-ok-700">Clean bill of health</p>
-              <p class="mt-1 text-sm text-navy-600">No parking or camera violations found for this plate in NYC's public records.</p>
+              <p class="mt-1 text-sm text-navy-600">No parking or camera violations found for this plate in ${escapeHtml(jurisdiction.label)}'s public records.</p>
             </div>
           </div>`;
       } else if (open.length === 0) {
         resultEl.innerHTML = `
           <div class="mt-4 rounded-xl bg-ok-100 border border-ok-600/20 px-5 py-4 text-sm text-ok-700">
-            <span class="font-semibold">No open balance.</span> Found ${rows.length} past violation(s) in NYC records, all paid in full.
+            <span class="font-semibold">No open balance.</span> Found ${rows.length} past violation(s) in ${escapeHtml(jurisdiction.label)} records, all paid in full.
           </div>`;
       } else {
         resultEl.innerHTML = `
           <div class="mt-4 space-y-3">
-            ${open.map(citationCard).join('')}
+            ${open.map((row) => citationCard(row, jurisdiction)).join('')}
           </div>`;
       }
     } catch (err) {
@@ -229,7 +227,7 @@
     }
   }
 
-  function citationCard(row) {
+  function citationCard(row, jurisdiction) {
     return `
       <div class="rounded-xl border border-alert-500/20 bg-alert-100/40 px-5 py-4">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -237,17 +235,17 @@
             <span class="h-1.5 w-1.5 rounded-full bg-alert-500"></span>
             Citation found
           </span>
-          <span class="text-xs text-navy-600">Summons #${escapeHtml(row.summons_number || '—')}</span>
+          <span class="text-xs text-navy-600">Summons #${escapeHtml(row.summonsNumber || '—')}</span>
         </div>
         <p class="mt-3 font-semibold text-navy-900">${escapeHtml(row.violation || 'Violation')}</p>
         <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <div><p class="text-navy-600">Issued</p><p class="font-medium text-navy-900">${escapeHtml(row.issue_date || '—')}</p></div>
-          <div><p class="text-navy-600">Fine amount</p><p class="font-medium text-navy-900">$${escapeHtml(row.fine_amount || '0')}</p></div>
-          <div><p class="text-navy-600">Amount due</p><p class="font-medium text-navy-900">$${escapeHtml(row.amount_due || '0')}</p></div>
+          <div><p class="text-navy-600">Issued</p><p class="font-medium text-navy-900">${escapeHtml(row.issueDate || '—')}</p></div>
+          <div><p class="text-navy-600">Fine amount</p><p class="font-medium text-navy-900">$${escapeHtml(row.fineAmount ?? '0')}</p></div>
+          <div><p class="text-navy-600">Amount due</p><p class="font-medium text-navy-900">$${escapeHtml(row.amountDue ?? '0')}</p></div>
         </div>
-        <a href="https://www.nyc.gov/assets/finance/jump/pay_parking_camera_violations.html" target="_blank" rel="noopener"
+        <a href="${escapeHtml(jurisdiction.payUrl)}" target="_blank" rel="noopener"
           class="btn-primary ease-spring duration-300 mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white font-semibold text-sm">
-          Pay Online at NYC Finance
+          ${escapeHtml(jurisdiction.payLabel)}
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
         </a>
       </div>`;

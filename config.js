@@ -34,9 +34,51 @@ const PLATE_TYPES = [
   'Temporary / Dealer',
 ];
 
-// States with a real, live checkup integration. Everything else shows
-// "coverage coming soon" instead of fabricating a result.
-const LIVE_COVERAGE_STATES = ['NY'];
+// Real, live checkup integrations, keyed by the plate's registration state.
+// Each covers one specific jurisdiction's open-data citation records, NOT
+// the whole state. Everything not listed here shows "coverage coming soon"
+// instead of fabricating a result.
+const LIVE_JURISDICTIONS = {
+  NY: {
+    label: 'New York City',
+    payUrl: 'https://www.nyc.gov/assets/finance/jump/pay_parking_camera_violations.html',
+    payLabel: 'Pay Online at NYC Finance',
+    async fetchCitations(plate) {
+      const url = `https://data.cityofnewyork.us/resource/nc67-uf89.json?plate=${encodeURIComponent(plate)}&state=NY&$limit=25`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`NYC Open Data returned ${res.status}`);
+      const rows = await res.json();
+      return rows.map((r) => ({
+        summonsNumber: r.summons_number,
+        violation: r.violation,
+        issueDate: r.issue_date,
+        fineAmount: r.fine_amount,
+        amountDue: r.amount_due,
+      }));
+    },
+  },
+  MD: {
+    label: 'Baltimore City',
+    payUrl: 'https://pay.baltimorecity.gov/parkingfines/',
+    payLabel: 'Pay Online at Baltimore City Finance',
+    async fetchCitations(plate) {
+      const safePlate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      const where = encodeURIComponent(`Tag='${safePlate}' AND State='MD'`);
+      const url = `https://services1.arcgis.com/UWYHeuuJISiGmgXx/arcgis/rest/services/Finance_Parking_Fines/FeatureServer/0/query?where=${where}&outFields=Citation,Tag,State,Description,ViolFine,ViolDate,Balance,GeneralStatus&f=json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Baltimore Open Data returned ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'Baltimore Open Data error');
+      return (data.features || []).map(({ attributes: r }) => ({
+        summonsNumber: r.Citation,
+        violation: r.Description,
+        issueDate: r.ViolDate ? new Date(r.ViolDate).toLocaleDateString('en-US') : '—',
+        fineAmount: r.ViolFine,
+        amountDue: r.Balance,
+      }));
+    },
+  },
+};
 
 function populateStateSelect(selectEl) {
   STATES.forEach(([abbr, name]) => {
