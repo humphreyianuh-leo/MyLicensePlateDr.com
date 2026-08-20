@@ -12,6 +12,7 @@
 <script src="tailwind-config.js"></script>
 <link rel="stylesheet" href="styles.css">
 <script src="config.js"></script>
+<script src="checkup.js"></script>
 </head>
 <body class="font-sans text-navy-900 antialiased">
 
@@ -102,8 +103,8 @@
   <div class="max-w-3xl mx-auto px-6 lg:px-10 py-24">
     <div class="text-center reveal">
       <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Try it — no account needed</p>
-      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Add a vehicle. See the checkup live.</h2>
-      <p class="mt-5 text-navy-600 leading-[1.7] text-lg max-w-xl mx-auto">Every plate from every state, in every plate type — this is exactly what goes on the chart before we run the first scan.</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Run a real checkup, right now.</h2>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg max-w-xl mx-auto">This checks the actual public citation records for New York City, Baltimore City, and San Francisco live — the same lookup your dashboard runs. Other states will honestly say they're not covered yet.</p>
     </div>
 
     <form id="demo-form" class="reveal mt-12 bg-white border border-steel-200 rounded-2xl p-8 sm:p-10 shadow-floating" novalidate>
@@ -143,16 +144,8 @@
         Run Free Checkup
       </button>
 
-      <div id="demo-result" class="hidden mt-8 rounded-xl bg-ok-100 border border-ok-600/20 px-6 py-5 items-start gap-4">
-        <div class="h-10 w-10 shrink-0 rounded-full bg-white shadow-elevated flex items-center justify-center">
-          <svg class="h-5 w-5 text-ok-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
-        </div>
-        <div>
-          <p class="font-semibold text-ok-700">Clean bill of health</p>
-          <p id="demo-result-text" class="mt-1 text-sm text-navy-700"></p>
-          <p class="mt-3 text-xs text-navy-600">This preview isn't saved anywhere. <a href="auth.html?mode=signup" class="font-semibold text-brand-600 hover:text-brand-700">Create a free account</a> to save this vehicle for real and run live checkups against actual municipal records.</p>
-        </div>
-      </div>
+      <div id="demo-result"></div>
+      <p id="demo-signup-note" class="hidden mt-4 text-xs text-navy-600 text-center">This result isn't saved anywhere. <a href="auth.html?mode=signup" class="font-semibold text-brand-600 hover:text-brand-700">Create a free account</a> to save this vehicle and get alerted the moment something new shows up.</p>
     </form>
   </div>
 </section>
@@ -593,31 +586,36 @@
   if (demoForm) {
     const submitBtn = document.getElementById('demo-submit');
     const result = document.getElementById('demo-result');
-    const resultText = document.getElementById('demo-result-text');
+    const signupNote = document.getElementById('demo-signup-note');
 
-    demoForm.addEventListener('submit', (e) => {
+    demoForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!demoForm.checkValidity()) {
         demoForm.reportValidity();
         return;
       }
 
-      const plateNumber = document.getElementById('plate-number').value.toUpperCase();
+      const plateNumber = document.getElementById('plate-number').value;
       const stateAbbr = stateSelect.value;
-      const stateName = STATES.find(([abbr]) => abbr === stateAbbr)?.[1] || stateAbbr;
-      const plateType = document.getElementById('plate-type').value;
+      const jurisdiction = LIVE_JURISDICTIONS[stateAbbr];
 
+      const originalLabel = submitBtn.textContent;
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Running checkup…';
-      result.classList.add('hidden');
+      submitBtn.textContent = jurisdiction ? `Checking ${jurisdiction.label} records…` : 'Running checkup…';
+      result.innerHTML = '';
+      signupNote.classList.add('hidden');
 
-      setTimeout(() => {
-        resultText.textContent = `${plateNumber} · ${stateName} (${stateAbbr}) · ${plateType} — no open citations found.`;
-        result.classList.remove('hidden');
-        result.classList.add('flex');
+      try {
+        result.innerHTML = jurisdiction
+          ? await fetchCheckupResultHtml(plateNumber, stateAbbr)
+          : comingSoonHtml(stateAbbr);
+        signupNote.classList.remove('hidden');
+      } catch (err) {
+        result.innerHTML = `<div class="mt-4 rounded-xl bg-alert-100 border border-alert-500/30 px-5 py-4 text-sm text-alert-600">Checkup failed: ${escapeHtml(err.message)}</div>`;
+      } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Run Free Checkup';
-      }, 900);
+        submitBtn.textContent = originalLabel;
+      }
     });
   }
 </script>
