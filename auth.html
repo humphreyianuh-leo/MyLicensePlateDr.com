@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign Up or Log In — MyLicensePlateDr</title>
+<meta name="robots" content="noindex" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="tailwind-config.js"></script>
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="font-sans text-navy-900 antialiased">
+
+<header class="border-b border-steel-200 bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center">
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="2.0mlpd_logo.png" alt="MyLicensePlateDr logo" class="h-11 w-11 rounded-xl shadow-elevated" />
+      <span class="plate-font text-navy-900 text-lg sm:text-xl font-semibold tracking-tight">MyLicense<span class="text-brand-600">Plate</span>Dr</span>
+    </a>
+  </div>
+</header>
+
+<main class="min-h-[calc(100vh-80px)] bg-[#f4f6ff] flex items-center justify-center px-6 py-16">
+  <div class="w-full max-w-md">
+
+    <div id="config-banner" class="hidden mb-6 rounded-xl bg-alert-100 border border-alert-500/30 px-5 py-4 text-sm text-alert-600">
+      <p class="font-semibold">Backend not configured yet.</p>
+      <p class="mt-1 text-navy-700">Add your Supabase project URL and anon key to <code class="px-1 py-0.5 rounded bg-white/60 text-xs">config.js</code>, and run <code class="px-1 py-0.5 rounded bg-white/60 text-xs">supabase-schema.sql</code> in the Supabase SQL Editor, to enable real accounts.</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-floating border border-steel-200 p-8 sm:p-10">
+      <div class="flex rounded-lg bg-brand-50 p-1 mb-8">
+        <button id="tab-signup" type="button" class="flex-1 text-sm font-semibold py-2.5 rounded-md ease-spring duration-200">Sign Up</button>
+        <button id="tab-login" type="button" class="flex-1 text-sm font-semibold py-2.5 rounded-md ease-spring duration-200">Log In</button>
+      </div>
+
+      <p id="form-title" class="plate-font text-2xl font-semibold text-navy-900 tracking-[-0.02em]"></p>
+      <p id="form-subtitle" class="mt-2 text-sm text-navy-600"></p>
+
+      <div id="error-banner" class="hidden mt-5 rounded-lg bg-alert-100 border border-alert-500/30 px-4 py-3 text-sm text-alert-600"></div>
+      <div id="success-banner" class="hidden mt-5 rounded-lg bg-ok-100 border border-ok-600/20 px-4 py-3 text-sm text-ok-700"></div>
+
+      <form id="auth-form" class="mt-6 space-y-5" novalidate>
+        <div>
+          <label for="email" class="block text-sm font-semibold text-navy-900 mb-2">Email</label>
+          <input id="email" type="email" required autocomplete="email" placeholder="you@example.com"
+            class="zip-input w-full rounded-lg px-4 py-3 bg-brand-50 border border-steel-200 text-navy-900 placeholder:text-navy-600/40 text-sm ease-spring duration-200" />
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-semibold text-navy-900 mb-2">Password</label>
+          <input id="password" type="password" required autocomplete="current-password" minlength="6" placeholder="••••••••"
+            class="zip-input w-full rounded-lg px-4 py-3 bg-brand-50 border border-steel-200 text-navy-900 placeholder:text-navy-600/40 text-sm ease-spring duration-200" />
+          <p id="password-hint" class="mt-1.5 text-xs text-navy-600">At least 6 characters.</p>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-primary ease-spring duration-300 w-full inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold">
+          <svg id="submit-spinner" class="hidden h-4 w-4 spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" stroke-opacity="0.3"/><path d="M21 12a9 9 0 00-9-9"/></svg>
+          <span id="submit-label">Create Free Account</span>
+        </button>
+      </form>
+
+      <p class="mt-6 text-center text-xs text-navy-600">
+        By continuing you agree this is an independent monitoring service, not affiliated with any DMV or government agency.
+      </p>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-navy-600">
+      <a href="index.html" class="font-medium text-brand-600 hover:text-brand-700">&larr; Back to home</a>
+    </p>
+  </div>
+</main>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  let mode = params.get('mode') === 'login' ? 'login' : 'signup';
+
+  const tabSignup = document.getElementById('tab-signup');
+  const tabLogin = document.getElementById('tab-login');
+  const formTitle = document.getElementById('form-title');
+  const formSubtitle = document.getElementById('form-subtitle');
+  const passwordHint = document.getElementById('password-hint');
+  const submitLabel = document.getElementById('submit-label');
+  const submitBtn = document.getElementById('submit-btn');
+  const submitSpinner = document.getElementById('submit-spinner');
+  const errorBanner = document.getElementById('error-banner');
+  const successBanner = document.getElementById('success-banner');
+  const authForm = document.getElementById('auth-form');
+  const passwordInput = document.getElementById('password');
+
+  function renderMode() {
+    const active = 'bg-white shadow-elevated text-brand-600';
+    const inactive = 'text-navy-600';
+    tabSignup.className = `flex-1 text-sm font-semibold py-2.5 rounded-md ease-spring duration-200 ${mode === 'signup' ? active : inactive}`;
+    tabLogin.className = `flex-1 text-sm font-semibold py-2.5 rounded-md ease-spring duration-200 ${mode === 'login' ? active : inactive}`;
+
+    if (mode === 'signup') {
+      formTitle.textContent = 'Create your free account';
+      formSubtitle.textContent = 'Add a vehicle and run your first checkup in under a minute.';
+      passwordHint.classList.remove('hidden');
+      passwordInput.setAttribute('autocomplete', 'new-password');
+      submitLabel.textContent = 'Create Free Account';
+    } else {
+      formTitle.textContent = 'Welcome back';
+      formSubtitle.textContent = 'Log in to see your vehicles and citation status.';
+      passwordHint.classList.add('hidden');
+      passwordInput.setAttribute('autocomplete', 'current-password');
+      submitLabel.textContent = 'Log In';
+    }
+    errorBanner.classList.add('hidden');
+    successBanner.classList.add('hidden');
+  }
+
+  tabSignup.addEventListener('click', () => { mode = 'signup'; renderMode(); });
+  tabLogin.addEventListener('click', () => { mode = 'login'; renderMode(); });
+  renderMode();
+
+  if (!SUPABASE_CONFIGURED) {
+    document.getElementById('config-banner').classList.remove('hidden');
+  }
+
+  const sb = SUPABASE_CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  async function redirectIfLoggedIn() {
+    if (!sb) return;
+    const { data } = await sb.auth.getSession();
+    if (data.session) location.href = 'dashboard.html';
+  }
+  redirectIfLoggedIn();
+
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBanner.classList.add('hidden');
+    successBanner.classList.add('hidden');
+
+    if (!sb) {
+      errorBanner.textContent = 'Backend not configured yet — see the notice above.';
+      errorBanner.classList.remove('hidden');
+      return;
+    }
+
+    const email = document.getElementById('email').value.trim();
+    const password = passwordInput.value;
+
+    submitBtn.disabled = true;
+    submitSpinner.classList.remove('hidden');
+    submitLabel.textContent = mode === 'signup' ? 'Creating account…' : 'Logging in…';
+
+    try {
+      if (mode === 'signup') {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          location.href = 'dashboard.html';
+          return;
+        }
+        successBanner.textContent = 'Account created! Check your email to confirm, then log in.';
+        successBanner.classList.remove('hidden');
+        mode = 'login';
+        renderMode();
+        successBanner.classList.remove('hidden');
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        location.href = 'dashboard.html';
+        return;
+      }
+    } catch (err) {
+      errorBanner.textContent = err.message || 'Something went wrong. Please try again.';
+      errorBanner.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+      submitSpinner.classList.add('hidden');
+      submitLabel.textContent = mode === 'signup' ? 'Create Free Account' : 'Log In';
+    }
+  });
+</script>
+
+</body>
+</html>
