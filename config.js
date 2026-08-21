@@ -7,6 +7,17 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const SUPABASE_CONFIGURED = !SUPABASE_URL.includes("YOUR_SUPABASE") && !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE");
 
+// TomTom Traffic API key (developer.tomtom.com, free tier, no card required).
+// Used client-side for map/traffic tiles — restrict it to this domain in the
+// TomTom dashboard (Apps -> your app -> allowed referrers) once deployed.
+const TOMTOM_API_KEY = "My1hlfsLDX5MvUvaN82UpVvfjUZw4EXp";
+
+const TRAFFIC_CITIES = [
+  { label: 'New York City', abbr: 'NY', lat: 40.7128, lng: -74.0060, zoom: 12 },
+  { label: 'Baltimore City', abbr: 'MD', lat: 39.2904, lng: -76.6122, zoom: 12 },
+  { label: 'San Francisco', abbr: 'CA', lat: 37.7749, lng: -122.4194, zoom: 12 },
+];
+
 const STATES = [
   ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
   ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],['FL','Florida'],

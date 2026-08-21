@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="styles.css">
 <script src="config.js"></script>
 <script src="checkup.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body class="font-sans text-navy-900 antialiased">
 
@@ -27,6 +29,7 @@
       <a href="#how" class="nav-link py-1">How It Works</a>
       <a href="#pay" class="nav-link py-1">Pay a Citation</a>
       <a href="#coverage" class="nav-link py-1">Coverage</a>
+      <a href="#traffic" class="nav-link py-1">Live Traffic</a>
       <a href="#features" class="nav-link py-1">Features</a>
       <a href="#pricing" class="nav-link py-1">Pricing</a>
       <a href="#faq" class="nav-link py-1">FAQ</a>
@@ -329,6 +332,51 @@
   </div>
 </section>
 
+<!-- LIVE TRAFFIC -->
+<section id="traffic" class="bg-[#f4f6ff]">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
+    <div class="max-w-2xl reveal">
+      <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Bonus checkup</p>
+      <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Live traffic in your coverage cities.</h2>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg">Real-time road conditions for New York City, Baltimore City, and San Francisco, updated every minute via TomTom's live traffic data.</p>
+    </div>
+
+    <div class="mt-14 grid lg:grid-cols-3 gap-6">
+      <div class="reveal card-elevate rounded-2xl border border-steel-200 bg-white overflow-hidden shadow-elevated">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-steel-200">
+          <p class="font-semibold text-navy-900 text-sm">New York City, NY</p>
+          <span class="inline-flex items-center gap-1.5 text-xs text-navy-600">
+            <span class="h-1.5 w-1.5 rounded-full bg-ok-600 pulse-dot"></span>
+            Live
+          </span>
+        </div>
+        <div id="traffic-map-ny" class="h-72"></div>
+      </div>
+      <div class="reveal card-elevate rounded-2xl border border-steel-200 bg-white overflow-hidden shadow-elevated">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-steel-200">
+          <p class="font-semibold text-navy-900 text-sm">Baltimore City, MD</p>
+          <span class="inline-flex items-center gap-1.5 text-xs text-navy-600">
+            <span class="h-1.5 w-1.5 rounded-full bg-ok-600 pulse-dot"></span>
+            Live
+          </span>
+        </div>
+        <div id="traffic-map-md" class="h-72"></div>
+      </div>
+      <div class="reveal card-elevate rounded-2xl border border-steel-200 bg-white overflow-hidden shadow-elevated">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-steel-200">
+          <p class="font-semibold text-navy-900 text-sm">San Francisco, CA</p>
+          <span class="inline-flex items-center gap-1.5 text-xs text-navy-600">
+            <span class="h-1.5 w-1.5 rounded-full bg-ok-600 pulse-dot"></span>
+            Live
+          </span>
+        </div>
+        <div id="traffic-map-ca" class="h-72"></div>
+      </div>
+    </div>
+    <p class="mt-6 text-xs text-navy-600 text-center">Green = free flow, yellow/orange = slower than usual, red = heavy congestion. Traffic data by <a href="https://www.tomtom.com" target="_blank" rel="noopener" class="underline hover:text-brand-600">TomTom</a>.</p>
+  </div>
+</section>
+
 <!-- FEATURES -->
 <section id="features" class="bg-white">
   <div class="max-w-7xl mx-auto px-6 lg:px-10 py-24">
@@ -616,6 +664,35 @@
         submitBtn.disabled = false;
         submitBtn.textContent = originalLabel;
       }
+    });
+  }
+
+  function initTrafficMap(containerId, city) {
+    const el = document.getElementById(containerId);
+    if (!el || typeof L === 'undefined') return;
+
+    const map = L.map(containerId, {
+      center: [city.lat, city.lng],
+      zoom: city.zoom,
+      scrollWheelZoom: false,
+    });
+
+    L.tileLayer(`https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, {
+      maxZoom: 18,
+      attribution: '&copy; TomTom',
+    }).addTo(map);
+
+    L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, {
+      maxZoom: 18,
+      opacity: 0.85,
+    }).addTo(map);
+  }
+
+  const trafficMapIds = { NY: 'traffic-map-ny', MD: 'traffic-map-md', CA: 'traffic-map-ca' };
+  if (document.getElementById('traffic')) {
+    TRAFFIC_CITIES.forEach((city) => {
+      const containerId = trafficMapIds[city.abbr];
+      if (containerId) initTrafficMap(containerId, city);
     });
   }
 </script>
