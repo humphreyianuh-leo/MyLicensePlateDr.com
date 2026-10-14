@@ -37,7 +37,7 @@
           <div class="rounded-xl bg-white border border-steel-200 shadow-floating p-2">
             <a href="stocks.html" aria-current="page" class="dropdown-item block rounded-lg px-4 py-3 bg-brand-50">
               <p class="font-semibold text-navy-900 text-sm">Stock &amp; Options Lookup</p>
-              <p class="mt-0.5 text-xs text-navy-600 leading-[1.5]">Search any ticker. See the data, 1–4 week projections, and strike ideas for selling puts and calls.</p>
+              <p class="mt-0.5 text-xs text-navy-600 leading-[1.5]">Search by ticker or company name. See the data, 1–4 week projections, and strike ideas for selling puts and calls.</p>
             </a>
           </div>
         </div>
@@ -53,16 +53,22 @@
 </header>
 
 <!-- SEARCH -->
-<section class="radial-field grain relative overflow-hidden">
+<!-- No overflow-hidden here: the autocomplete list must be able to hang below the section. -->
+<section class="radial-field grain relative z-30">
   <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-14 pb-16">
     <p class="text-brand-300 font-semibold text-sm tracking-wide uppercase">Stock Market</p>
     <h1 class="plate-font text-white text-4xl sm:text-5xl leading-[1.05] font-semibold tracking-[-0.03em] mt-3 max-w-3xl">Give a stock a checkup before you sell.</h1>
-    <p class="mt-5 text-lg text-steel-200 leading-[1.7] max-w-2xl">Search a ticker to see its live price history, fundamentals, analyst ratings and news. You'll also get 1–4 week projected price ranges, with the best prices to sell shares, sell a put, or sell a call.</p>
+    <p class="mt-5 text-lg text-steel-200 leading-[1.7] max-w-2xl">Search by ticker or company name to see live price history, fundamentals, analyst ratings and news. You'll also get 1–4 week projected price ranges, with the best prices to sell shares, sell a put, or sell a call.</p>
 
     <form id="stock-form" class="mt-9 flex flex-col sm:flex-row gap-3 max-w-xl" novalidate>
-      <label for="ticker" class="sr-only">Ticker symbol</label>
-      <input id="ticker" autocomplete="off" spellcheck="false" maxlength="12" placeholder="Ticker, e.g. AAPL"
-        class="zip-input flex-1 uppercase tracking-widest plate-font rounded-xl px-5 py-3.5 bg-white border border-white/20 text-navy-900 text-lg placeholder:text-navy-600/40 placeholder:tracking-normal placeholder:font-sans placeholder:text-base shadow-elevated" />
+      <label for="ticker" class="sr-only">Ticker symbol or company name</label>
+      <div class="relative flex-1">
+        <input id="ticker" autocomplete="off" spellcheck="false" maxlength="60" placeholder="Ticker or company, e.g. AAPL or Apple"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ticker-suggestions"
+          class="zip-input w-full plate-font tracking-wide rounded-xl px-5 py-3.5 bg-white border border-white/20 text-navy-900 text-lg placeholder:text-navy-600/40 placeholder:tracking-normal placeholder:font-sans placeholder:text-base shadow-elevated" />
+        <ul id="ticker-suggestions" role="listbox" aria-label="Matching stocks"
+          class="hidden absolute z-20 left-0 right-0 top-full mt-2 max-h-80 overflow-y-auto rounded-xl bg-white border border-steel-200 shadow-floating p-1.5"></ul>
+      </div>
       <button id="stock-submit" type="submit" class="btn-primary ease-spring duration-300 inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold">
         Run Checkup
       </button>
@@ -76,7 +82,7 @@
   <div id="config-banner" class="hidden mb-8 rounded-xl bg-brand-50 border border-brand-100 px-5 py-4 text-sm text-navy-700 leading-[1.7]"></div>
 
   <div id="empty-state" class="rounded-2xl border border-dashed border-steel-300 bg-white/60 px-6 py-16 text-center">
-    <p class="plate-font text-2xl font-semibold text-navy-900 tracking-[-0.02em]">Search a ticker to begin.</p>
+    <p class="plate-font text-2xl font-semibold text-navy-900 tracking-[-0.02em]">Search a ticker or company name to begin.</p>
     <p class="mt-2 text-navy-600 text-sm">Results refresh automatically every hour while this page is open.</p>
   </div>
 
@@ -382,15 +388,107 @@
     }
   }
 
-  form.addEventListener('submit', (e) => {
+  // ---------- ticker / company-name autocomplete ----------
+  const suggestionsEl = document.getElementById('ticker-suggestions');
+  let suggestions = [];
+  let activeIndex = -1;
+  let searchTimer = null;
+  let searchSeq = 0;
+
+  function closeSuggestions() {
+    suggestionsEl.classList.add('hidden');
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    activeIndex = -1;
+  }
+
+  function renderSuggestions() {
+    if (!suggestions.length) { closeSuggestions(); return; }
+    suggestionsEl.innerHTML = suggestions.map((s, i) => `
+      <li id="sugg-${i}" role="option" data-index="${i}" aria-selected="${i === activeIndex}"
+        class="dropdown-item cursor-pointer rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3 ${i === activeIndex ? 'bg-brand-50' : ''}">
+        <span class="min-w-0">
+          <span class="plate-font font-semibold text-navy-900 tracking-wide">${escapeHtml(s.symbol)}</span>
+          <span class="block text-sm text-navy-600 truncate">${escapeHtml(s.name)}</span>
+        </span>
+        <span class="shrink-0 rounded-full bg-brand-50 text-navy-700 text-xs px-2.5 py-1">${escapeHtml(s.type)}</span>
+      </li>`).join('');
+    suggestionsEl.classList.remove('hidden');
+    input.setAttribute('aria-expanded', 'true');
+    if (activeIndex >= 0) input.setAttribute('aria-activedescendant', `sugg-${activeIndex}`);
+    else input.removeAttribute('aria-activedescendant');
+  }
+
+  function pickSuggestion(s) {
+    input.value = s.symbol;
+    closeSuggestions();
+    loadStock(s.symbol);
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = input.value.trim();
+    if (!q) { suggestions = []; closeSuggestions(); return; }
+    searchTimer = setTimeout(async () => {
+      const seq = ++searchSeq;
+      const found = await searchSymbols(q);
+      if (seq !== searchSeq || input.value.trim() !== q) return; // a newer keystroke won
+      suggestions = found;
+      activeIndex = -1;
+      renderSuggestions();
+    }, 250);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const open = !suggestionsEl.classList.contains('hidden');
+    if (e.key === 'ArrowDown' && suggestions.length) {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % suggestions.length;
+      renderSuggestions();
+    } else if (e.key === 'ArrowUp' && suggestions.length) {
+      e.preventDefault();
+      activeIndex = activeIndex <= 0 ? suggestions.length - 1 : activeIndex - 1;
+      renderSuggestions();
+    } else if (e.key === 'Enter' && open && activeIndex >= 0) {
+      e.preventDefault();
+      pickSuggestion(suggestions[activeIndex]);
+    } else if (e.key === 'Escape' && open) {
+      closeSuggestions();
+    }
+  });
+
+  // mousedown (not click) so the pick happens before the input loses focus.
+  suggestionsEl.addEventListener('mousedown', (e) => {
+    const li = e.target.closest('[data-index]');
+    if (!li) return;
     e.preventDefault();
-    const symbol = input.value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
-    if (!symbol) {
-      errorEl.textContent = 'Enter a ticker symbol, like AAPL.';
+    pickSuggestion(suggestions[+li.dataset.index]);
+  });
+
+  input.addEventListener('blur', () => setTimeout(closeSuggestions, 100));
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearTimeout(searchTimer);
+    closeSuggestions();
+    const query = input.value.trim();
+    if (!query) {
+      errorEl.textContent = 'Enter a ticker or company name, like AAPL or Apple.';
       errorEl.classList.remove('hidden');
       return;
     }
-    loadStock(symbol);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Searching…';
+    const match = await resolveSymbol(query);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Run Checkup';
+    if (!match) {
+      errorEl.textContent = `No US stock or ETF found matching "${query}". Try the ticker symbol instead.`;
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    input.value = match.symbol;
+    loadStock(match.symbol);
   });
 
   setInterval(() => { if (currentSymbol) loadStock(currentSymbol, { quiet: true }); }, REFRESH_INTERVAL_MS);
