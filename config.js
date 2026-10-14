@@ -12,6 +12,15 @@ const SUPABASE_CONFIGURED = !SUPABASE_URL.includes("YOUR_SUPABASE") && !SUPABASE
 // TomTom dashboard (Apps -> your app -> allowed referrers) once deployed.
 const TOMTOM_API_KEY = "My1hlfsLDX5MvUvaN82UpVvfjUZw4EXp";
 
+// How often live data on the page (traffic maps, dashboard checkups) refreshes.
+const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+
+// Stock data for stocks.html. Both are free, no card required:
+//  - Twelve Data (twelvedata.com): daily price history. "demo" only works for AAPL.
+//  - Finnhub (finnhub.io): company profile, fundamentals, analyst ratings, news, earnings.
+const TWELVE_DATA_API_KEY = "demo";
+const FINNHUB_API_KEY = "YOUR_FINNHUB_KEY";
+
 const TRAFFIC_CITIES = [
   { label: 'New York City', abbr: 'NY', lat: 40.7128, lng: -74.0060, zoom: 12 },
   { label: 'Baltimore City', abbr: 'MD', lat: 39.2904, lng: -76.6122, zoom: 12 },

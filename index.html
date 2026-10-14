@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="config.js"></script>
 <script src="checkup.js"></script>
+<script src="nav.js" defer></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
@@ -20,23 +21,37 @@
 
 <!-- NAV -->
 <header class="sticky top-0 z-50 bg-sky-950/90 backdrop-blur-md border-b border-white/5">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-20 flex items-center justify-between">
-    <a href="#top" class="flex items-center gap-3 group">
+  <div class="max-w-7xl 2xl:max-w-[90rem] mx-auto px-6 lg:px-10 h-20 flex items-center justify-between gap-6">
+    <a href="#top" class="flex items-center gap-3 group shrink-0">
       <img src="2.0mlpd_logo.png" alt="MyLicensePlateDr logo" class="h-11 w-11 rounded-xl shadow-elevated" />
       <span class="plate-font text-white text-lg sm:text-xl font-semibold tracking-tight">MyLicense<span class="text-brand-400">Plate</span>Dr</span>
     </a>
-    <nav class="hidden md:flex items-center gap-9 text-sm text-steel-200">
-      <a href="#how" class="nav-link py-1">How It Works</a>
+    <nav class="hidden lg:flex items-center gap-5 xl:gap-6 text-sm text-steel-200 whitespace-nowrap">
+      <a href="#how" class="nav-link py-1 hidden xl:inline">How It Works</a>
       <a href="#pay" class="nav-link py-1">Pay a Citation</a>
       <a href="#coverage" class="nav-link py-1">Coverage</a>
-      <a href="#traffic" class="nav-link py-1">Live Traffic</a>
-      <a href="#features" class="nav-link py-1">Features</a>
+      <div class="nav-dropdown relative" data-dropdown>
+        <button type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" class="nav-link py-1 inline-flex items-center gap-1">
+          Stock Market
+          <svg class="chev h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="dropdown-menu absolute left-0 top-full pt-3 w-72 whitespace-normal">
+          <div class="rounded-xl bg-white border border-steel-200 shadow-floating p-2">
+            <a href="stocks.html" class="dropdown-item block rounded-lg px-4 py-3">
+              <p class="font-semibold text-navy-900 text-sm">Stock &amp; Options Lookup</p>
+              <p class="mt-0.5 text-xs text-navy-600 leading-[1.5]">Search any ticker. See the data, 1–4 week projections, and strike ideas for selling puts and calls.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+      <a href="#traffic" class="nav-link py-1 hidden xl:inline">Live Traffic</a>
+      <a href="#features" class="nav-link py-1 hidden 2xl:inline">Features</a>
       <a href="#pricing" class="nav-link py-1">Pricing</a>
-      <a href="#faq" class="nav-link py-1">FAQ</a>
+      <a href="#faq" class="nav-link py-1 hidden 2xl:inline">FAQ</a>
     </nav>
-    <div class="flex items-center gap-3">
-      <a href="auth.html?mode=login" class="btn-ghost hidden sm:inline-flex items-center px-4 py-2.5 rounded-lg text-sm text-steel-200 ease-spring duration-300">Log In</a>
-      <a href="auth.html?mode=signup" class="btn-primary ease-spring duration-300 inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white">Get Your Free Checkup</a>
+    <div class="flex items-center gap-3 shrink-0">
+      <a href="auth.html?mode=login" class="btn-ghost hidden sm:inline-flex items-center px-4 py-2.5 rounded-lg text-sm text-steel-200 ease-spring duration-300 whitespace-nowrap">Log In</a>
+      <a href="auth.html?mode=signup" class="btn-primary ease-spring duration-300 inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap">Get Your Free Checkup</a>
     </div>
   </div>
 </header>
@@ -338,7 +353,7 @@
     <div class="max-w-2xl reveal">
       <p class="text-brand-600 font-semibold text-sm tracking-wide uppercase">Bonus checkup</p>
       <h2 class="plate-font text-3xl sm:text-4xl font-semibold text-navy-900 tracking-[-0.02em] mt-3">Live traffic in your coverage cities.</h2>
-      <p class="mt-5 text-navy-600 leading-[1.7] text-lg">Real-time road conditions for New York City, Baltimore City, and San Francisco, updated every minute via TomTom's live traffic data.</p>
+      <p class="mt-5 text-navy-600 leading-[1.7] text-lg">Real-time road conditions for New York City, Baltimore City, and San Francisco, refreshed every hour via TomTom's live traffic data.</p>
     </div>
 
     <div class="mt-14 grid lg:grid-cols-3 gap-6">
@@ -682,10 +697,14 @@
       attribution: '&copy; TomTom',
     }).addTo(map);
 
-    L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, {
+    const flowUrl = `https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`;
+    const flowLayer = L.tileLayer(flowUrl, {
       maxZoom: 18,
       opacity: 0.85,
     }).addTo(map);
+
+    // Leaflet keeps tiles it already loaded, so bust the cache to pull fresh traffic flow.
+    setInterval(() => flowLayer.setUrl(`${flowUrl}&t=${Date.now()}`), REFRESH_INTERVAL_MS);
   }
 
   const trafficMapIds = { NY: 'traffic-map-ny', MD: 'traffic-map-md', CA: 'traffic-map-ca' };

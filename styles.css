@@ -66,3 +66,25 @@ details.faq .answer { transition: grid-template-rows 0.35s cubic-bezier(.16,1,.3
 .spinner { animation: spin 0.8s linear infinite; }
 
 ::selection { background: #5c82f7; color: white; }
+
+.nav-dropdown .dropdown-menu {
+  opacity: 0; transform: translateY(6px); pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(.16,1,.3,1), transform 0.35s cubic-bezier(.16,1,.3,1);
+}
+.nav-dropdown:hover .dropdown-menu,
+.nav-dropdown:focus-within .dropdown-menu,
+.nav-dropdown.open .dropdown-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.nav-dropdown .chev { transition: transform 0.35s cubic-bezier(.16,1,.3,1); }
+.nav-dropdown:hover .chev, .nav-dropdown.open .chev { transform: rotate(180deg); }
+.dropdown-item { transition: transform 0.25s cubic-bezier(.16,1,.3,1); }
+.dropdown-item:hover { background: #f4f6ff; transform: translateX(2px); }
+.dropdown-item:active { transform: translateX(0); background: #e8edfe; }
+.dropdown-item:focus-visible { outline: 2px solid #8ba5fb; outline-offset: -2px; }
+
+.tab-btn { transition: transform 0.25s cubic-bezier(.16,1,.3,1); }
+.tab-btn:hover { transform: translateY(-1px); }
+.tab-btn:active { transform: translateY(0); }
+.tab-btn:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 2px; }
+
+.news-link:hover .news-title { color: #2450dd; }
+.news-link:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 2px; border-radius: 0.75rem; }

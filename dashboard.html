@@ -102,6 +102,8 @@
   const userEmailEl = document.getElementById('user-email');
 
   let currentUser = null;
+  // Vehicles the user has run a checkup on, so the hourly refresh can re-run them.
+  const checkedVehicleIds = new Set();
 
   async function requireAuth() {
     if (!sb) return;
@@ -136,10 +138,20 @@
     data.forEach(renderVehicleCard);
   }
 
+  async function refreshDashboard() {
+    await loadVehicles();
+    vehicleList.querySelectorAll('[data-vehicle-id]').forEach((card) => {
+      if (checkedVehicleIds.has(card.dataset.vehicleId)) {
+        card.querySelector('[data-action="checkup"]').click();
+      }
+    });
+  }
+
   function renderVehicleCard(vehicle) {
     const stateName = STATES.find(([abbr]) => abbr === vehicle.plate_state)?.[1] || vehicle.plate_state;
     const card = document.createElement('div');
     card.className = 'bg-white border border-steel-200 rounded-2xl p-6 shadow-elevated';
+    card.dataset.vehicleId = vehicle.id;
     card.innerHTML = `
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -159,7 +171,7 @@
     card.querySelector('[data-action="delete"]').addEventListener('click', async () => {
       if (!confirm(`Remove plate ${vehicle.plate_number}?`)) return;
       const { error } = await sb.from('vehicles').delete().eq('id', vehicle.id);
-      if (!error) card.remove();
+      if (!error) { card.remove(); checkedVehicleIds.delete(String(vehicle.id)); }
       if (!error && vehicleList.children.length === 0) emptyState.classList.remove('hidden');
     });
 
@@ -173,6 +185,7 @@
   async function runCheckup(vehicle, resultEl, btn) {
     btn.disabled = true;
     const originalLabel = btn.textContent;
+    checkedVehicleIds.add(String(vehicle.id));
 
     const jurisdiction = LIVE_JURISDICTIONS[vehicle.plate_state];
     if (!jurisdiction) {
@@ -236,6 +249,7 @@
   });
 
   requireAuth();
+  setInterval(() => { if (currentUser) refreshDashboard(); }, REFRESH_INTERVAL_MS);
 </script>
 
 </body>
