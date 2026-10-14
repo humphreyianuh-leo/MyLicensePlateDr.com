@@ -42,6 +42,82 @@ function finnhub(path) {
 
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 
+// ---------- symbol search (ticker or company name) ----------
+
+const SEARCHABLE_TYPES = new Set(['Common Stock', 'ETP', 'ADR', 'ETF', 'Depositary Receipt', 'REIT']);
+const searchCache = new Map();
+
+async function finnhubSearch(q) {
+  const data = await finnhub(`search?q=${encodeURIComponent(q)}&exchange=US`);
+  return (data.result || [])
+    .filter((r) => SEARCHABLE_TYPES.has(r.type))
+    .map((r) => ({ symbol: r.symbol, name: r.description, type: r.type === 'ETP' ? 'ETF' : r.type }));
+}
+
+// Keyless fallback. Lists every global exchange, so keep US listings only.
+async function twelveDataSearch(q) {
+  const data = await fetchJson(`https://api.twelvedata.com/symbol_search?symbol=${encodeURIComponent(q)}&outputsize=30`, 'Twelve Data');
+  return (data.data || [])
+    .filter((r) => r.country === 'United States' && SEARCHABLE_TYPES.has(r.instrument_type))
+    .map((r) => ({ symbol: r.symbol, name: r.instrument_name, type: r.instrument_type }));
+}
+
+// Exact ticker first, then names starting with the query, then the provider's order.
+function rankMatches(q, matches) {
+  const upper = q.toUpperCase();
+  const lower = q.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const score = (m) => {
+    if (m.symbol.toUpperCase() === upper) return 0;
+    if (m.name.toLowerCase().replace(/^the\s+/, '').replace(/[^a-z0-9]/g, '').startsWith(lower)) return 1;
+    return 2;
+  };
+  const seen = new Set();
+  return matches
+    .map((m, i) => ({ m, i, s: score(m) }))
+    .sort((a, b) => a.s - b.s || a.i - b.i)
+    .map(({ m }) => m)
+    .filter((m) => !seen.has(m.symbol) && seen.add(m.symbol));
+}
+
+async function searchSymbols(query) {
+  const q = query.trim();
+  if (!q) return [];
+  const key = q.toLowerCase();
+  if (searchCache.has(key)) return searchCache.get(key);
+
+  // Finnhub misses "coca cola" but finds "coca-cola", so try a hyphenated variant too.
+  const attempts = [];
+  if (FINNHUB_CONFIGURED) {
+    attempts.push(() => finnhubSearch(q));
+    if (/\s/.test(q)) attempts.push(() => finnhubSearch(q.replace(/\s+/g, '-')));
+  }
+  attempts.push(() => twelveDataSearch(q));
+
+  let results = [];
+  for (const attempt of attempts) {
+    try {
+      results = await attempt();
+    } catch {
+      results = [];
+    }
+    if (results.length) break;
+  }
+  results = rankMatches(q, results).slice(0, 8);
+  searchCache.set(key, results);
+  return results;
+}
+
+// Turns whatever the user typed into one ticker: an exact ticker match wins,
+// otherwise the best company-name match. Falls back to treating it as a ticker.
+async function resolveSymbol(query) {
+  const q = query.trim();
+  const looksLikeTicker = /^[A-Za-z][A-Za-z0-9.\-]{0,9}$/.test(q);
+  const matches = await searchSymbols(q);
+  if (matches.length) return matches[0];
+  if (looksLikeTicker) return { symbol: q.toUpperCase(), name: null };
+  return null;
+}
+
 // Everything Finnhub offers on the free tier. Each piece fails independently
 // so one missing endpoint doesn't blank the whole page.
 async function fetchCompanyData(symbol) {
