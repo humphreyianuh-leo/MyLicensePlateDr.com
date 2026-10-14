@@ -16,10 +16,10 @@ const TOMTOM_API_KEY = "My1hlfsLDX5MvUvaN82UpVvfjUZw4EXp";
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 // Stock data for stocks.html. Both are free, no card required:
-//  - Twelve Data (twelvedata.com): daily price history. "demo" only works for AAPL.
+//  - Twelve Data (twelvedata.com): daily price history.
 //  - Finnhub (finnhub.io): company profile, fundamentals, analyst ratings, news, earnings.
-const TWELVE_DATA_API_KEY = "demo";
-const FINNHUB_API_KEY = "YOUR_FINNHUB_KEY";
+const TWELVE_DATA_API_KEY = "e3f257b1641941169beb49b3e7fb5aec";
+const FINNHUB_API_KEY = "db7tagpr01qmvbh2po9gdb7tagpr01qmvbh2poa0";
 
 const TRAFFIC_CITIES = [
   { label: 'New York City', abbr: 'NY', lat: 40.7128, lng: -74.0060, zoom: 12 },
