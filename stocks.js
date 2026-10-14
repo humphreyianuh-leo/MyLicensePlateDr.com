@@ -126,12 +126,17 @@ async function fetchCompanyData(symbol) {
   const today = new Date();
   const weekAgo = new Date(today - 7 * 864e5);
   const in45 = new Date(+today + 45 * 864e5);
-  const [profile, metrics, recs, news, earnings] = await Promise.allSettled([
+  const ninetyDaysAgo = new Date(today - 90 * 864e5);
+  const [profile, metrics, recs, news, earnings, surprises, insiders, peers, filings] = await Promise.allSettled([
     finnhub(`stock/profile2?symbol=${s}`),
     finnhub(`stock/metric?symbol=${s}&metric=all`),
     finnhub(`stock/recommendation?symbol=${s}`),
     finnhub(`company-news?symbol=${s}&from=${isoDate(weekAgo)}&to=${isoDate(today)}`),
     finnhub(`calendar/earnings?symbol=${s}&from=${isoDate(today)}&to=${isoDate(in45)}`),
+    finnhub(`stock/earnings?symbol=${s}`),
+    finnhub(`stock/insider-transactions?symbol=${s}&from=${isoDate(ninetyDaysAgo)}`),
+    finnhub(`stock/peers?symbol=${s}`),
+    finnhub(`stock/filings?symbol=${s}`),
   ]);
   const val = (r) => (r.status === 'fulfilled' ? r.value : null);
   return {
@@ -140,8 +145,34 @@ async function fetchCompanyData(symbol) {
     recommendation: val(recs)?.[0] || null,
     news: (val(news) || []).slice(0, 8),
     nextEarnings: val(earnings)?.earningsCalendar?.sort((a, b) => a.date.localeCompare(b.date))[0] || null,
+    earningsHistory: (val(surprises) || []).slice(0, 4),
+    insiders: summarizeInsiders(val(insiders)?.data || []),
+    peers: (val(peers) || []).filter((p) => p !== symbol).slice(0, 8),
+    filings: (val(filings) || []).filter((f) => KEY_FILING_FORMS.has(f.form)).slice(0, 6),
   };
 }
+
+// Only open-market buys (P) and sells (S) say anything about insider conviction;
+// grants, option exercises and tax withholding are routine.
+function summarizeInsiders(rows) {
+  const trades = rows.filter((r) => (r.transactionCode === 'P' || r.transactionCode === 'S') && !r.isDerivative);
+  const sum = (code, f) => trades.filter((t) => t.transactionCode === code).reduce((a, t) => a + f(t), 0);
+  return {
+    buys: trades.filter((t) => t.transactionCode === 'P').length,
+    sells: trades.filter((t) => t.transactionCode === 'S').length,
+    boughtValue: sum('P', (t) => Math.abs(t.change) * (t.transactionPrice || 0)),
+    soldValue: sum('S', (t) => Math.abs(t.change) * (t.transactionPrice || 0)),
+    recent: trades.slice(0, 5),
+  };
+}
+
+const KEY_FILING_FORMS = new Set(['10-K', '10-Q', '8-K', '20-F', '6-K', '40-F', 'S-1', 'S-3', 'DEF 14A', 'SC 13D', 'SC 13G', '424B5']);
+const FILING_LABELS = {
+  '10-K': 'Annual report', '10-Q': 'Quarterly report', '8-K': 'Major event', '20-F': 'Annual report (foreign)',
+  '6-K': 'Foreign issuer report', '40-F': 'Annual report (Canada)', 'S-1': 'New share registration',
+  'S-3': 'Share registration', 'DEF 14A': 'Proxy statement', 'SC 13D': 'Activist stake (5%+)',
+  'SC 13G': 'Passive stake (5%+)', '424B5': 'Share offering',
+};
 
 // ---------- math ----------
 

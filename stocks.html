@@ -14,6 +14,7 @@
 <script src="config.js"></script>
 <script src="checkup.js"></script>
 <script src="stocks.js"></script>
+<script src="market.js"></script>
 <script src="nav.js" defer></script>
 </head>
 <body class="font-sans text-navy-900 antialiased bg-[#f4f6ff]">
@@ -81,7 +82,7 @@
 
   <div id="config-banner" class="hidden mb-8 rounded-xl bg-brand-50 border border-brand-100 px-5 py-4 text-sm text-navy-700 leading-[1.7]"></div>
 
-  <div id="empty-state" class="rounded-2xl border border-dashed border-steel-300 bg-white/60 px-6 py-16 text-center">
+  <div id="empty-state" class="hidden rounded-2xl border border-dashed border-steel-300 bg-white/60 px-6 py-16 text-center">
     <p class="plate-font text-2xl font-semibold text-navy-900 tracking-[-0.02em]">Search a ticker or company name to begin.</p>
     <p class="mt-2 text-navy-600 text-sm">Results refresh automatically every hour while this page is open.</p>
   </div>
@@ -90,7 +91,13 @@
     <svg class="spinner h-8 w-8 text-brand-600" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" stroke-width="3"/><path d="M22 12a10 10 0 00-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
   </div>
 
-  <div id="results" class="hidden space-y-6"></div>
+  <div id="results" class="hidden space-y-6 scroll-mt-28"></div>
+
+  <section id="market-overview" class="mt-12 scroll-mt-28" aria-live="polite">
+    <div class="py-16 flex justify-center">
+      <svg class="spinner h-6 w-6 text-brand-600" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" stroke-width="3"/><path d="M22 12a10 10 0 00-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+  </section>
 
   <p class="mt-12 text-xs text-navy-600 leading-[1.7] max-w-4xl">
     <span class="font-semibold text-navy-900">Not financial advice.</span>
@@ -332,6 +339,73 @@
     return card(`<div class="p-6"><h2 class="font-semibold text-navy-900">Latest news</h2><div class="mt-1">${body}</div></div>`);
   }
 
+  function earningsHtml(co) {
+    const rows = co?.earningsHistory || [];
+    const body = rows.length ? `
+      <table class="mt-3 w-full text-sm tabular-nums">
+        <thead><tr class="text-left text-xs text-navy-600 border-b border-steel-200">
+          <th class="py-2 font-medium">Quarter</th><th class="py-2 font-medium text-right">Expected</th><th class="py-2 font-medium text-right">Actual</th><th class="py-2 font-medium text-right">Result</th>
+        </tr></thead>
+        <tbody>${rows.map((r) => {
+          const beat = r.actual != null && r.estimate != null && r.actual >= r.estimate;
+          return `<tr class="border-b border-steel-200/70 last:border-0">
+            <td class="py-2 text-navy-900">Q${r.quarter} ${r.year}</td>
+            <td class="py-2 text-right text-navy-600">${fmtUsd(r.estimate)}</td>
+            <td class="py-2 text-right text-navy-900">${fmtUsd(r.actual)}</td>
+            <td class="py-2 text-right font-semibold ${beat ? 'text-ok-600' : 'text-alert-600'}">${r.surprisePercent == null ? '—' : `${beat ? 'Beat' : 'Missed'} ${Math.abs(r.surprisePercent).toFixed(1)}%`}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+      <p class="mt-3 text-xs text-navy-600 leading-[1.6]">Earnings per share against analysts' estimate. Big surprises often mean big moves, so be careful selling options across earnings.</p>`
+      : '<p class="mt-3 text-sm text-navy-600">No earnings history available.</p>';
+    return card(`<div class="p-6"><h2 class="font-semibold text-navy-900">Earnings track record</h2>${body}</div>`);
+  }
+
+  function insidersHtml(co) {
+    const ins = co?.insiders;
+    if (!ins) return card('<div class="p-6"><h2 class="font-semibold text-navy-900">Insider trading</h2><p class="mt-3 text-sm text-navy-600">No insider data available.</p></div>');
+    const read = ins.buys === 0 && ins.sells === 0 ? 'No open-market insider buying or selling in the last 90 days.'
+      : ins.buys > ins.sells ? 'Insiders have been net buyers, which is usually read as confidence.'
+      : ins.buys === 0 ? 'Insiders have only been selling. Often routine (taxes, diversification), but worth noting.'
+      : 'Insiders have sold more than they bought.';
+    const recent = ins.recent.map((t) => `
+      <div class="flex items-center justify-between gap-3 py-2 border-b border-steel-200/70 last:border-0 text-sm">
+        <span class="min-w-0"><span class="block text-navy-900 truncate">${escapeHtml(t.name)}</span><span class="text-xs text-navy-600">${fmtDate(t.transactionDate)}</span></span>
+        <span class="text-right tabular-nums shrink-0"><span class="block font-semibold ${t.transactionCode === 'P' ? 'text-ok-600' : 'text-alert-600'}">${t.transactionCode === 'P' ? 'Bought' : 'Sold'} ${fmtBig(Math.abs(t.change))}</span><span class="text-xs text-navy-600">at ${fmtUsd(t.transactionPrice)}</span></span>
+      </div>`).join('');
+    return card(`
+      <div class="p-6">
+        <div class="flex items-baseline justify-between"><h2 class="font-semibold text-navy-900">Insider trading</h2><p class="text-xs text-navy-600">Last 90 days</p></div>
+        <div class="mt-4 grid grid-cols-2 gap-4">
+          ${stat('Open-market buys', `${ins.buys}`, ins.boughtValue ? `$${fmtBig(ins.boughtValue)}` : '')}
+          ${stat('Open-market sells', `${ins.sells}`, ins.soldValue ? `$${fmtBig(ins.soldValue)}` : '')}
+        </div>
+        <p class="mt-4 text-xs text-navy-600 leading-[1.6]">${read}</p>
+        ${recent ? `<div class="mt-3">${recent}</div>` : ''}
+      </div>`);
+  }
+
+  function filingsHtml(co) {
+    const rows = co?.filings || [];
+    const body = rows.length ? rows.map((f) => `
+      <a href="${escapeHtml(f.filingUrl || f.reportUrl)}" target="_blank" rel="noopener" class="news-link flex items-center justify-between gap-3 py-2.5 border-b border-steel-200/70 last:border-0 text-sm">
+        <span class="min-w-0"><span class="news-title block font-medium text-navy-900">${escapeHtml(FILING_LABELS[f.form] || f.form)}</span><span class="text-xs text-navy-600">Form ${escapeHtml(f.form)}</span></span>
+        <span class="text-xs text-navy-600 shrink-0">${fmtDate(f.filedDate.slice(0, 10))}</span>
+      </a>`).join('')
+      : '<p class="mt-3 text-sm text-navy-600">No recent SEC filings found.</p>';
+    return card(`<div class="p-6"><h2 class="font-semibold text-navy-900">SEC filings</h2><div class="mt-2">${body}</div></div>`);
+  }
+
+  function peersHtml(co) {
+    const peers = co?.peers || [];
+    if (!peers.length) return '';
+    return card(`
+      <div class="p-6 flex items-center gap-x-4 gap-y-3 flex-wrap">
+        <h2 class="font-semibold text-navy-900 mr-2">Compare with competitors</h2>
+        ${peers.map((p) => `<button type="button" data-symbol="${escapeHtml(p)}" class="peer-chip plate-font tracking-wide rounded-full bg-brand-50 border border-brand-100 text-navy-900 text-sm px-3.5 py-1.5">${escapeHtml(p)}</button>`).join('')}
+      </div>`);
+  }
+
   function render(symbol, history, co, a) {
     results.innerHTML = `
       ${headerHtml(symbol, history.meta, a, co)}
@@ -342,9 +416,23 @@
         ${fundamentalsHtml(a, co)}
         ${analystsHtml(co)}
       </div>
+      <div class="grid lg:grid-cols-3 gap-6">
+        ${earningsHtml(co)}
+        ${insidersHtml(co)}
+        ${filingsHtml(co)}
+      </div>
+      ${peersHtml(co)}
       ${newsHtml(co)}`;
     renderPriceChart(document.getElementById('price-chart'), history.bars, a);
   }
+
+  // Peers, sectors, indexes and movers all carry data-symbol: clicking one runs its checkup.
+  document.querySelector('main').addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-symbol]');
+    if (!pick) return;
+    input.value = pick.dataset.symbol;
+    loadStock(pick.dataset.symbol, { scroll: true });
+  });
 
   results.addEventListener('click', (e) => {
     const tab = e.target.closest('[data-weeks]');
@@ -354,7 +442,7 @@
     document.querySelector(`[data-weeks="${activeWeeks}"]`).focus();
   });
 
-  async function loadStock(symbol, { quiet = false } = {}) {
+  async function loadStock(symbol, { quiet = false, scroll = false } = {}) {
     errorEl.classList.add('hidden');
     if (!quiet) {
       submitBtn.disabled = true;
@@ -370,6 +458,7 @@
       currentSymbol = symbol;
       render(symbol, history, co, lastAnalysis);
       results.classList.remove('hidden');
+      if (scroll) results.scrollIntoView({ behavior: 'smooth', block: 'start' });
       const url = new URL(location.href);
       url.searchParams.set('symbol', symbol);
       window.history.replaceState(null, '', url);
@@ -492,6 +581,33 @@
   });
 
   setInterval(() => { if (currentSymbol) loadStock(currentSymbol, { quiet: true }); }, REFRESH_INTERVAL_MS);
+
+  // ---------- market overview ----------
+  const marketEl = document.getElementById('market-overview');
+  const MARKET_RETRY_MS = 5 * 60 * 1000;
+  async function loadMarket(force = false) {
+    let wait = MARKET_RETRY_MS;
+    try {
+      const m = await fetchMarketOverview({ force });
+      renderMarketOverview(marketEl, m);
+      // Check again a couple of minutes after the next hourly snapshot should land.
+      // If it's overdue (the job runs late), poll every few minutes rather than in a tight loop.
+      const due = m.fetchedAt.getTime() + REFRESH_INTERVAL_MS + 2 * 60 * 1000 - Date.now();
+      wait = due > 0 ? due : MARKET_RETRY_MS;
+    } catch (err) {
+      // Keep the previous snapshot on screen if a refresh fails; try again in a few minutes.
+      if (!marketEl.querySelector('h2')) {
+        marketEl.innerHTML = `<p class="text-sm text-navy-600">Couldn't load the market overview: ${escapeHtml(err.message)}. Retrying shortly.</p>`;
+      }
+    }
+    setTimeout(() => loadMarket(true), wait);
+  }
+  if (FINNHUB_CONFIGURED) {
+    loadMarket();
+  } else {
+    marketEl.remove();
+    emptyState.classList.remove('hidden');
+  }
 
   const initial = new URLSearchParams(location.search).get('symbol');
   if (initial) {
