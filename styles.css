@@ -88,3 +88,12 @@ details.faq .answer { transition: grid-template-rows 0.35s cubic-bezier(.16,1,.3
 
 .news-link:hover .news-title { color: #2450dd; }
 .news-link:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 2px; border-radius: 0.75rem; }
+
+.market-tile:focus-visible, .market-row:focus-visible, .peer-chip:focus-visible { outline: 2px solid #8ba5fb; outline-offset: 2px; }
+.market-tile:active { transform: translateY(-1px); }
+.market-row { transition: transform 0.25s cubic-bezier(.16,1,.3,1); }
+.market-row:hover { background: #f4f6ff; transform: translateX(2px); }
+.market-row:active { transform: translateX(0); background: #e8edfe; }
+.peer-chip { transition: transform 0.25s cubic-bezier(.16,1,.3,1); }
+.peer-chip:hover { transform: translateY(-1px); background: #e8edfe; }
+.peer-chip:active { transform: translateY(0); }
